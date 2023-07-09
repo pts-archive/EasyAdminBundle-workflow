@@ -6,22 +6,15 @@ on:
     pull_request:
 
 jobs:
-    tests:
-        strategy:
-            fail-fast: false
-            matrix:
-                os: [ubuntu-latest]
-                php_versions: ["8.1", "8.2"]
-                symfony_version: ["6.1", "6.2", "6.3"]
-                mode: [low, high]
-        runs-on: ${{ matrix.os }}
+    lowest:
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
 
             - name: Setup PHP, with composer and extensions
               uses: shivammathur/setup-php@v2
               with:
-                  php-version: ${{ matrix.php_versions }}
+                  php-version: "8.0.2"
                   coverage: none
 
             - name: Get Composer Cache Directory
@@ -34,8 +27,8 @@ jobs:
               uses: actions/cache@v3
               with:
                   path: ${{ steps.composer-cache-dir.outputs.dir }}
-                  key: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-${{ matrix.mode }}-composer-${{ hashFiles('**/composer.json') }}
-                  restore-keys: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-${{ matrix.mode }}-composer-
+                  key: test-lowest-${{ hashFiles('**/composer.json') }}
+                  restore-keys: test-lowest-
 
             - name: Install symfony/flex
               run: |
@@ -44,9 +37,7 @@ jobs:
 
             - name: Install dependencies
               run: |
-                  composer config extra.symfony.require "${{ matrix.symfony_version }}"
-                  [[ "${{ matrix.mode }}" = "low" ]] && composer update --no-progress --prefer-lowest || true
-                  [[ "${{ matrix.mode }}" = "high" ]] && composer update --no-progress || true
+                  composer update --no-progress --prefer-lowest
                   vendor/bin/simple-phpunit install
 
             - name: Run tests
@@ -54,14 +45,13 @@ jobs:
                   SYMFONY_DEPRECATIONS_HELPER: "weak"
               run: vendor/bin/simple-phpunit
 
-    tests-legacy:
+    php-8_0:
         strategy:
             fail-fast: false
             matrix:
                 os: [ubuntu-latest]
-                php_versions: ["8.0", "8.1", "8.2"]
+                php_versions: ["8.0"]
                 symfony_version: ["5.4", "6.0"]
-                mode: [low, high]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v3
@@ -82,8 +72,8 @@ jobs:
               uses: actions/cache@v3
               with:
                   path: ${{ steps.composer-cache-dir.outputs.dir }}
-                  key: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-${{ matrix.mode }}-composer-${{ hashFiles('**/composer.json') }}
-                  restore-keys: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-${{ matrix.mode }}-composer-
+                  key: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-composer-${{ hashFiles('**/composer.json') }}
+                  restore-keys: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-composer-
 
             - name: Install symfony/flex
               run: |
@@ -93,8 +83,53 @@ jobs:
             - name: Install dependencies
               run: |
                   composer config extra.symfony.require "${{ matrix.symfony_version }}"
-                  [[ "${{ matrix.mode }}" = "low" ]] && composer update --no-progress --prefer-lowest || true
-                  [[ "${{ matrix.mode }}" = "high" ]] && composer update --no-progress || true
+                  composer install
+                  vendor/bin/simple-phpunit install
+
+            - name: Run tests
+              env:
+                  SYMFONY_DEPRECATIONS_HELPER: "weak"
+              run: vendor/bin/simple-phpunit
+
+    maintained:
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest]
+                php_versions: ["8.1", "8.2"]
+                symfony_version: ["5.4", "6.0", "6.1", "6.2", "6.3"]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Setup PHP, with composer and extensions
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php_versions }}
+                  coverage: none
+
+            - name: Get Composer Cache Directory
+              id: composer-cache-dir
+              run: |
+                  echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+            - name: Cache Composer packages
+              id: composer-cache
+              uses: actions/cache@v3
+              with:
+                  path: ${{ steps.composer-cache-dir.outputs.dir }}
+                  key: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-composer-${{ hashFiles('**/composer.json') }}
+                  restore-keys: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-composer-
+
+            - name: Install symfony/flex
+              run: |
+                  composer global config --no-plugins allow-plugins.symfony/flex true
+                  composer global require symfony/flex
+
+            - name: Install dependencies
+              run: |
+                  composer config extra.symfony.require "${{ matrix.symfony_version }}"
+                  composer install
                   vendor/bin/simple-phpunit install
 
             - name: Run tests
