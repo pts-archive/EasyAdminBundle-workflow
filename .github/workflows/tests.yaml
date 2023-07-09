@@ -11,8 +11,8 @@ jobs:
             fail-fast: false
             matrix:
                 os: [ubuntu-latest]
-                php_versions: ['8.1', '8.2']
-                symfony_version: ['6.1', '6.2', '6.3']
+                php_versions: ["8.1", "8.2"]
+                symfony_version: ["6.1", "6.2", "6.3"]
                 mode: [low, high]
         runs-on: ${{ matrix.os }}
         steps:
@@ -37,6 +37,11 @@ jobs:
                   key: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-${{ matrix.mode }}-composer-${{ hashFiles('**/composer.json') }}
                   restore-keys: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-${{ matrix.mode }}-composer-
 
+            - name: Install symfony/flex
+              run: |
+                  composer global config --no-plugins allow-plugins.symfony/flex true
+                  composer global require symfony/flex
+
             - name: Install dependencies
               run: |
                   composer config extra.symfony.require "${{ matrix.symfony_version }}"
@@ -46,7 +51,7 @@ jobs:
 
             - name: Run tests
               env:
-                  SYMFONY_DEPRECATIONS_HELPER: 'weak'
+                  SYMFONY_DEPRECATIONS_HELPER: "weak"
               run: vendor/bin/simple-phpunit
 
     tests-legacy:
@@ -54,8 +59,8 @@ jobs:
             fail-fast: false
             matrix:
                 os: [ubuntu-latest]
-                php_versions: ['8.0', '8.1', '8.2']
-                symfony_version: ['5.4', '6.0']
+                php_versions: ["8.0", "8.1", "8.2"]
+                symfony_version: ["5.4", "6.0"]
                 mode: [low, high]
         runs-on: ${{ matrix.os }}
         steps:
@@ -80,6 +85,11 @@ jobs:
                   key: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-${{ matrix.mode }}-composer-${{ hashFiles('**/composer.json') }}
                   restore-keys: ${{ runner.os }}-${{ matrix.php_versions }}-${{ matrix.symfony_version }}-${{ matrix.mode }}-composer-
 
+            - name: Install symfony/flex
+              run: |
+                  composer global config --no-plugins allow-plugins.symfony/flex true
+                  composer global require symfony/flex
+
             - name: Install dependencies
               run: |
                   composer config extra.symfony.require "${{ matrix.symfony_version }}"
@@ -89,5 +99,5 @@ jobs:
 
             - name: Run tests
               env:
-                  SYMFONY_DEPRECATIONS_HELPER: 'weak'
+                  SYMFONY_DEPRECATIONS_HELPER: "weak"
               run: vendor/bin/simple-phpunit
